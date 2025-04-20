@@ -71,8 +71,8 @@ model = load_model()
 conn = get_db_connection()
 
 # ============ STREAMLIT UI COMPONENTS ============
-st.title("🏦 South African Loan Approval")
-st.markdown("This app evaluates loans based on **South African credit regulations**.")
+st.title("🏦 Nedbank Loan Approval")
+st.markdown("This app evaluates loans based on **South African credit regulations** and **bank specific internal risk management rules**.")
 
 # Input Section
 col1, col2 = st.columns(2)
