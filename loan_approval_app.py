@@ -1,4 +1,4 @@
-# ============ IMPORTS & NON-STREAMLIT SETUP ============
+# ============ ALL IMPORTS FIRST ============
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -7,13 +7,12 @@ import os
 from datetime import datetime
 import time
 
-# Database setup function (non-Streamlit)
+# ============ NON-STREAMLIT FUNCTION DEFINITIONS ============
 def init_db_connection():
     os.makedirs("data", exist_ok=True)
     db_path = os.path.join("data", "bank_risk_100k.db")
     return sqlite3.connect(db_path, check_same_thread=False)
 
-# Model functions (non-Streamlit)
 def generate_data(n=100000):
     np.random.seed(42)
     data = pd.DataFrame({
@@ -54,11 +53,11 @@ def get_loan_decision(model, income, credit_score, loan_amount, dti):
     else:
         return "✅ Approved", loan_amount, default_prob
 
-# ============ STREAMLIT APP (CONFIG FIRST) ============
+# ============ STREAMLIT IMPORT & CONFIG (FIRST ST COMMAND) ============
 import streamlit as st
 st.set_page_config(page_title="SA Loan Approval System", layout="centered")
 
-# Initialize resources with caching
+# ============ STREAMLIT CACHED RESOURCES ============
 @st.cache_resource
 def load_model():
     data = generate_data()
@@ -71,9 +70,9 @@ def get_db_connection():
 model = load_model()
 conn = get_db_connection()
 
-# ============ APP UI ============
+# ============ STREAMLIT UI COMPONENTS ============
 st.title("🏦 South African Loan Approval")
-st.markdown("This app evaluates loans based on **South African credit regulations** and **bank risk rules**.")
+st.markdown("This app evaluates loans based on **South African credit regulations**.")
 
 # Input Section
 col1, col2 = st.columns(2)
