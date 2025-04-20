@@ -6,6 +6,8 @@ from datetime import datetime
 import sqlite3
 import time
 
+conn = sqlite3.connect('bank_risk_100k.db', check_same_thread=False)
+
 # Simulate data with South African context
 def generate_data(n=100000):
     np.random.seed(42)
