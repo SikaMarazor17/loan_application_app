@@ -120,9 +120,6 @@ if st.button("Check Approval", type="primary", key="check_approval_button"):
             reason, prob, officer_id
         ))
         conn.commit()
-        st.success("Decision logged to database!")
-        time.sleep(0.5)
-        st.balloons()
     except Exception as e:
         st.error(f"Database error: {str(e)}")
 
