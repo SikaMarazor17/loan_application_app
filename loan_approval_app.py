@@ -1,4 +1,4 @@
-import streamlit as st
+# ============ IMPORTS & NON-STREAMLIT SETUP ============
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -7,36 +7,13 @@ import os
 from datetime import datetime
 import time
 
-# ====================== DATABASE SETUP ======================
-@st.cache_resource
-def init_db():
+# Database setup function (non-Streamlit)
+def init_db_connection():
     os.makedirs("data", exist_ok=True)
     db_path = os.path.join("data", "bank_risk_100k.db")
-    conn = sqlite3.connect(db_path, check_same_thread=False)
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS loan_decisions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp TEXT NOT NULL,
-        branch TEXT NOT NULL,
-        income INTEGER NOT NULL,
-        credit_score INTEGER NOT NULL,
-        loan_amount INTEGER NOT NULL,
-        adjusted_amount INTEGER,
-        dti REAL NOT NULL,
-        decision TEXT NOT NULL,
-        reason TEXT,
-        default_prob REAL NOT NULL,
-        officer_id TEXT NOT NULL
-    )
-    ''')
-    conn.commit()
-    return conn
+    return sqlite3.connect(db_path, check_same_thread=False)
 
-conn = init_db()
-
-# ====================== MODEL FUNCTIONS ======================
+# Model functions (non-Streamlit)
 def generate_data(n=100000):
     np.random.seed(42)
     data = pd.DataFrame({
@@ -63,7 +40,6 @@ def train_model(data):
 def get_loan_decision(model, income, credit_score, loan_amount, dti):
     input_data = pd.DataFrame([[income, credit_score, loan_amount, dti]],
                             columns=['income', 'credit_score', 'loan_amount', 'debt_to_income'])
-    
     default_prob = model.predict_proba(input_data)[0][1]
     
     if dti > 0.4:
@@ -78,14 +54,26 @@ def get_loan_decision(model, income, credit_score, loan_amount, dti):
     else:
         return "✅ Approved", loan_amount, default_prob
 
-# ====================== STREAMLIT UI ======================
+# ============ STREAMLIT APP (CONFIG FIRST) ============
+import streamlit as st
 st.set_page_config(page_title="SA Loan Approval System", layout="centered")
-st.title("🏦 South African Loan Approval")
-st.markdown("This app evaluates loans based on **South African credit regulations** and **bank specific internal risk management rules**.")
 
-# Generate data and train model
-data = generate_data()
-model = train_model(data)
+# Initialize resources with caching
+@st.cache_resource
+def load_model():
+    data = generate_data()
+    return train_model(data)
+
+@st.cache_resource
+def get_db_connection():
+    return init_db_connection()
+
+model = load_model()
+conn = get_db_connection()
+
+# ============ APP UI ============
+st.title("🏦 South African Loan Approval")
+st.markdown("This app evaluates loans based on **South African credit regulations** and **bank risk rules**.")
 
 # Input Section
 col1, col2 = st.columns(2)
@@ -97,9 +85,8 @@ with col2:
     loan_amount = st.number_input("Loan Amount (R)", min_value=50000, max_value=5000000, value=50000, step=10000)
     dti = st.number_input("Debt-to-Income Ratio", min_value=0.1, max_value=0.8, value=0.3, step=0.01, format="%.2f")
 
-# Decision and Database Logging
+# Decision Logic
 if st.button("Check Approval", type="primary", key="check_approval_button"):
-    # Get decision
     decision, offer, prob = get_loan_decision(model, income, credit_score, loan_amount, dti)
     
     # Display results
@@ -145,15 +132,15 @@ with st.expander("ℹ️ How decisions are made", expanded=False):
     st.markdown("""
     ### South African Lending Rules:
     - **Credit Score:**
-      - <span style='color:red'>&lt;550</span>: Automatic rejection (per National Credit Act)
-      - <span style='color:orange'>550-600</span>: High scrutiny
-      - <span style='color:green'>600+</span>: Preferred
+      - <550: Automatic rejection (NCA)
+      - 550-600: High scrutiny
+      - 600+: Preferred
 
     - **Debt-to-Income (DTI):**
-      - <span style='color:red'>&gt;40%</span>: Automatic rejection
+      - >40%: Automatic rejection
 
     - **Model Predictions:**
-      - <span style='color:red'>&gt;65%</span> default risk: Rejected
-      - <span style='color:orange'>35-65%</span> risk: Counteroffer (70% of requested amount)
-      - <span style='color:green'>&lt;35%</span> risk: Approved
+      - >65% default risk: Rejected
+      - 35-65% risk: Counteroffer (70%)
+      - <35% risk: Approved
     """, unsafe_allow_html=True)
